@@ -1,11 +1,11 @@
-import { Page } from 'playwright'
-import { CheerioAPI, load } from 'cheerio'
+import {Page} from 'playwright'
+import {CheerioAPI, load} from 'cheerio'
 import axios, { AxiosRequestConfig } from 'axios'
 
-import { MicrosoftRewardsBot } from '../index'
+import {MicrosoftRewardsBot} from '../index'
 
-import { Counters, DashboardData, MorePromotion, PromotionalItem } from './../interface/DashboardData'
-import { QuizData } from './../interface/QuizData'
+import {Counters, DashboardData, MorePromotion, PromotionalItem} from './../interface/DashboardData'
+import {QuizData} from './../interface/QuizData'
 import { AppUserData } from '../interface/AppUserData'
 
 
@@ -20,7 +20,7 @@ export default class BrowserFunc {
     /**
      * Navigate the provided page to rewards homepage
      * @param {Page} page Playwright page
-    */
+     */
     async goHome(page: Page) {
 
         try {
@@ -39,7 +39,10 @@ export default class BrowserFunc {
                 await this.bot.browser.utils.tryDismissCookieBanner(page)
 
                 // Check if account is suspended
-                const isSuspended = await page.waitForSelector('#suspendedAccountHeader', { state: 'visible', timeout: 2000 }).then(() => true).catch(() => false)
+                const isSuspended = await page.waitForSelector('#suspendedAccountHeader', {
+                    state: 'visible',
+                    timeout: 2000
+                }).then(() => true).catch(() => false)
                 if (isSuspended) {
                     this.bot.log('GO-HOME', 'This account is suspended!', 'error')
                     throw new Error('Account has been suspended!')
@@ -47,7 +50,7 @@ export default class BrowserFunc {
 
                 try {
                     // If activities are found, exit the loop
-                    await page.waitForSelector('#more-activities', { timeout: 1000 })
+                    await page.waitForSelector('#more-activities', {timeout: 1000})
                     this.bot.log('GO-HOME', 'Visited homepage successfully')
                     break
 
@@ -79,7 +82,7 @@ export default class BrowserFunc {
     /**
      * Fetch user dashboard data
      * @returns {DashboardData} Object of user bing rewards dashboard data
-    */
+     */
     async getDashboardData(): Promise<DashboardData> {
         const dashboardURL = new URL(this.bot.config.baseURL)
         const currentURL = new URL(this.bot.homePage.url())
@@ -91,7 +94,7 @@ export default class BrowserFunc {
         }
 
         // Reload the page to get new data
-        await this.bot.homePage.reload({ waitUntil: 'domcontentloaded' })
+        await this.bot.homePage.reload({waitUntil: 'domcontentloaded'})
 
         const scriptContent = await this.bot.homePage.evaluate(() => {
             const scripts = Array.from(document.querySelectorAll('script'))
@@ -125,7 +128,7 @@ export default class BrowserFunc {
     /**
      * Get search point counters
      * @returns {Counters} Object of search counter data
-    */
+     */
     async getSearchPoints(): Promise<Counters> {
         const dashboardData = await this.getDashboardData() // Always fetch newest data
 
@@ -135,7 +138,7 @@ export default class BrowserFunc {
     /**
      * Get total earnable points with web browser
      * @returns {number} Total earnable points
-    */
+     */
     async getBrowserEarnablePoints(): Promise<number> {
         try {
             const data = await this.getDashboardData()
@@ -225,7 +228,7 @@ export default class BrowserFunc {
     /**
      * Get current point amount
      * @returns {number} Current total point amount
-    */
+     */
     async getCurrentPoints(): Promise<number> {
         try {
             const data = await this.getDashboardData()
@@ -240,7 +243,7 @@ export default class BrowserFunc {
      * Parse quiz data from provided page
      * @param {Page} page Playwright page
      * @returns {QuizData} Quiz data object
-    */
+     */
     async getQuizData(page: Page): Promise<QuizData> {
         try {
             const html = await page.content()
@@ -272,7 +275,7 @@ export default class BrowserFunc {
 
     async waitForQuizRefresh(page: Page): Promise<boolean> {
         try {
-            await page.waitForSelector('span.rqMCredits', { state: 'visible', timeout: 10_000 })
+            await page.waitForSelector('span.rqMCredits', {state: 'visible', timeout: 10_000})
             await this.bot.utils.wait(2000)
 
             return true
@@ -284,7 +287,7 @@ export default class BrowserFunc {
 
     async checkQuizCompleted(page: Page): Promise<boolean> {
         try {
-            await page.waitForSelector('#quizCompleteContainer', { state: 'visible', timeout: 2000 })
+            await page.waitForSelector('#quizCompleteContainer', {state: 'visible', timeout: 2000})
             await this.bot.utils.wait(2000)
 
             return true
@@ -317,4 +320,23 @@ export default class BrowserFunc {
         return selector
     }
 
+    async closeDashboardPopUpModal(activityPage: Page) {
+        try {
+            // find for a component with className 'dashboardPopUpModal'
+            await activityPage.waitForSelector('.dashboardPopUpModal', {state: 'visible', timeout: 1000})
+            const modal = await activityPage.$('.dashboardPopUpModal')
+            this.bot.log('DASHBOARD-MODAL', 'Found dashboard modal')
+            if (modal) {
+                // Close the modal by clicking the button id 'reward_pivot_earn'
+                const button = await modal.$('#reward_pivot_earn')
+                if (button) {
+                    await button.click()
+                    await this.bot.utils.wait(2000)
+                    this.bot.log('DASHBOARD-MODAL', 'Closed dashboard modal')
+                }
+            }
+        } catch (error) {
+            // Continue if element is not found or other error occurs
+        }
+    }
 }

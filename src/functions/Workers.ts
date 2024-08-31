@@ -113,6 +113,9 @@ export class Workers {
     private async solveActivities(activityPage: Page, activities: PromotionalItem[] | MorePromotion[], punchCard?: PunchCard) {
         const activityInitial = activityPage.url() // Homepage for Daily/More and Index for promotions
 
+        // close dashboardPopUpModal if it exists
+        await this.bot.browser.func.closeDashboardPopUpModal(activityPage)
+
         for (const activity of activities) {
             try {
                 // Reselect the worker page
